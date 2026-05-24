@@ -10,6 +10,5 @@ x64/
 *.ilk
 *.exp
 *.lib
-SDK/
 tools/
 loader/
