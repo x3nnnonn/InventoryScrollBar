@@ -193,19 +193,21 @@ void ExpandGridLayout(UWBP_Inventory_C* inv)
         inv->GridBackground->SetNumRows(rows);
 
     if (IsUsable(inv->InventoryContentSizeBox) && inv->ColumnWidth > 0.0) {
-        const float row_height = static_cast<float>(inv->ColumnWidth);
-        const float padding = static_cast<float>(inv->RowsHeightBottomPadding);
-        const float full_height = row_height * static_cast<float>(rows) + padding;
-        inv->InventoryContentSizeBox->ClearMaxDesiredHeight();
-        inv->InventoryContentSizeBox->SetHeightOverride(full_height);
+        if (!PatchesEnabled(inv)) {
+            const float row_height = static_cast<float>(inv->ColumnWidth);
+            const float padding = static_cast<float>(inv->RowsHeightBottomPadding);
+            const float full_height = row_height * static_cast<float>(rows) + padding;
+            inv->InventoryContentSizeBox->ClearMaxDesiredHeight();
+            inv->InventoryContentSizeBox->SetHeightOverride(full_height);
+        }
     }
 }
 
 float InventoryViewportHeight(UWBP_Inventory_C* inv)
 {
     float viewport = static_cast<float>(inv->MaxBackgroundHeight);
-    if (IsUsable(inv->SizeBox) && inv->SizeBox->HeightOverride > 0.f)
-        viewport = inv->SizeBox->HeightOverride;
+    if (IsUsable(inv->InventoryContentSizeBox) && inv->InventoryContentSizeBox->HeightOverride > 0.f)
+        viewport = inv->InventoryContentSizeBox->HeightOverride;
     if (viewport <= 0.f)
         viewport = 420.f;
     return viewport;
@@ -229,8 +231,8 @@ float ComputeInventoryViewportHeight(UWBP_Inventory_C* inv)
     const int32 rows = RowsForSlots(InventorySlotCount(inv), InventoryColumns(inv));
 
     float base = static_cast<float>(inv->MaxBackgroundHeight);
-    if (IsUsable(inv->SizeBox) && inv->SizeBox->HeightOverride > 0.f)
-        base = inv->SizeBox->HeightOverride;
+    if (IsUsable(inv->InventoryContentSizeBox) && inv->InventoryContentSizeBox->HeightOverride > 0.f)
+        base = inv->InventoryContentSizeBox->HeightOverride;
     if (base <= 0.f)
         base = 420.f;
 
@@ -259,9 +261,9 @@ void ApplyInventoryViewport(UWBP_Inventory_C* inv)
     const float viewport = ComputeInventoryViewportHeight(inv);
     const float content = InventoryContentHeight(inv);
 
-    if (IsUsable(inv->SizeBox)) {
-        inv->SizeBox->ClearMaxDesiredHeight();
-        inv->SizeBox->SetHeightOverride(viewport);
+    if (IsUsable(inv->InventoryContentSizeBox)) {
+        inv->InventoryContentSizeBox->ClearMaxDesiredHeight();
+        inv->InventoryContentSizeBox->SetHeightOverride(viewport);
     }
 
     const double layout_height =
@@ -352,11 +354,11 @@ UWBP_Inventory_C* InventoryForScrollWidget(UWBP_ScrollBoxThatWorksWithController
 void InstallScrollWrapper(UWBP_Inventory_C* inv)
 {
     ScrollPatchState& state = g_states[inv];
-    if (state.scroll_installed || !IsUsable(inv->SizeBox)) return;
+    if (state.scroll_installed || !IsUsable(inv->InventoryContentSizeBox)) return;
 
-    UWidget* content = inv->SizeBox->GetContent();
+    UWidget* content = inv->InventoryContentSizeBox->GetContent();
     if (!IsUsable(content)) {
-        LOG("SizeBox content not ready for %p", inv);
+        LOG("InventoryContentSizeBox content not ready for %p", inv);
         return;
     }
 
@@ -372,7 +374,7 @@ void InstallScrollWrapper(UWBP_Inventory_C* inv)
 
     scroll->ForceHideRightStick = true;
     scroll->AddChild(content);
-    inv->SizeBox->SetContent(scroll);
+    inv->InventoryContentSizeBox->SetContent(scroll);
 
     if (IsUsable(scroll->ScrollBox))
         scroll->ScrollBox->SetWheelScrollMultiplier(1.0f);
